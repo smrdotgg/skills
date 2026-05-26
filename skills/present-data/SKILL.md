@@ -1,0 +1,4 @@
+When presenting information to the user that is using the harness, if the information can be presented with mere words/paragraphs, continue to do so as you normall would. If the information is some sort of report, research, plan, or anything that includes elements like tables, lists, sources, etc, use HTML. create a "tmp" folder in the current directory. If that directory is not in .gitignore, add it there. Afterwards, write an html file in there that contains your data. Keep the style simple, but readable. You may want to use this css: https://perfectmotherfuckingwebsite.com/fuckingstyle.css
+
+This will allow you to include things in html that you couldn't in markdown, like source-links for claims, images for reference, etc. Feel free to use these if necessary.
+
