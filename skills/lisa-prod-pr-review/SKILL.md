@@ -17,7 +17,9 @@ Review a LISA PR targeting a production branch. Produce a production-readiness r
    - `code_fix`: Small, clear issue to fix on the contributor's branch before merge.
    - `PR-Ticket`: Non-blocking issue the PR author can address after merge. If created, prefix its Linear title with exactly `PR-Ticket: `, set priority to Urgent, and set deadline to next Friday. Consult past PR-Tickets when useful.
    - `Closing PR`: Block merge when the change is unsafe for production or rests on a fundamental implementation flaw. Examples: incorrect core behavior, material security or data-integrity risk, or a type escape such as `as any` concealing an invalid design.
-5. Use the `show-report` skill. Report verdict, prioritized findings with file/line evidence, recommended action for each finding, and residual risks or test gaps. State clearly when no blocking findings exist.
+5. Produce the report. Mode is selected by user request; if neither is explicitly mentioned, assume **screen** mode.
+   - **Screen mode (default):** Use the `show-report` skill.
+   - **Print mode:** The user wants a printable report (e.g. to read at a café on a black-and-white printer). Read the `explain-diff-print` skill and follow every rule in it (black-and-white only, no dark backgrounds, serif/monospace print fonts, page breaks per section, self-contained HTML with no external resources, file at `/tmp/YYYY-MM-DD-...`). Apply those rules to the review report. Do not duplicate the rules here; read the skill.
 
 ## Constraints
 

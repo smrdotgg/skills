@@ -1,10 +1,17 @@
 ---
 name: lisa-pr-review
-description: How to review PR's into non-production branches (other than main) when working on LISA
+description: How to review PR's into non-production branches (other than main) when working on LISA. Supports two report modes — screen (default) and print. Use print mode when the user asks for a printable, black-and-white-friendly report to read away from a screen.
 disable-model-invocation: true
 ---
 
 There is a PR. You need to review it, and produce a report back to the user.
+
+## Report mode
+
+Two modes, selected by user request. If neither is explicitly mentioned, assume **screen** mode.
+
+- **Screen mode (default):** Use the pre-existing reporting method — the `show-report` skill.
+- **Print mode:** The user wants a printable report (e.g. to read at a café on a black-and-white printer). Read the `explain-diff-print` skill and follow every rule in it (black-and-white only, no dark backgrounds, serif/monospace print fonts, page breaks per section, quiz answers in a final section on their own page, self-contained HTML with no external resources, file at `/tmp/YYYY-MM-DD-...`). Apply those rules to the review report. Do not duplicate the rules here; read the skill.
 
 You should not make any changes to the code, PR, or Ticket unless explicitly stated as such.
 
