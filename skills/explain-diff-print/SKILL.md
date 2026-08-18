@@ -1,6 +1,6 @@
 ---
 name: explain-diff-print
-description: Use when the user asks for a printable explanation of a code change, diff, branch, or PR. Produces a self-contained HTML file optimized for printing on a black-and-white printer and reading away from a screen (e.g. at a café).
+description: Use when the user asks for a printable explanation of a code change, diff, branch, or PR. Produces a self-contained HTML file optimized for printing on a black-and-white printer and reading away from a screen (e.g. at a café). After creating the file, deliver it to the user via the send-report skill.
 ---
 
 # Explain Diff (Print Edition)
@@ -67,6 +67,10 @@ These rules are the whole point of this skill versus the on-screen version. Foll
 
 - Use callout boxes for key concepts, definitions, and important edge cases.
 - Callouts are bordered boxes with a bold label (e.g. "Definition", "Edge case", "Key idea"). No colored backgrounds — a 1px solid border and a bold label is enough. They must `break-inside: avoid`.
+
+## Deliver the report
+
+After saving the HTML file, read the `send-report` skill and follow it to deliver the file to the user.
 
 ## Self-check before saving
 
