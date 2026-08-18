@@ -36,7 +36,7 @@ These rules are the whole point of this skill versus the on-screen version. Foll
 
 - **Black-and-white only.** Design as if color does not exist. Never encode meaning with color alone. If you would have used color to distinguish things on screen, distinguish them on paper with: borders, line style (solid vs. dashed vs. dotted), labels, numbering, shading patterns, or bold/italic weight.
 - **No dark or saturated backgrounds.** White background, black text. The only shading allowed is very light gray (`#f2f2f2` or lighter) for code blocks and table headers, which prints as a faint tint and does not waste toner. Never use black backgrounds with light text.
-- **Fonts**: use a readable serif stack for body text (`Charter, Georgia, "Times New Roman", serif`) and a readable monospace stack for code (`"SF Mono", "Menlo", Consolas, "Courier New", monospace`). Serif body text is easier on the eyes for long reading on paper.
+- **Fonts**: use Geist for all prose (`"Geist", system-ui, sans-serif`) and Geist Mono for code (`"Geist Mono", ui-monospace, monospace`). Use these exact stacks throughout the document.
 - **Sizes**: body text `12pt`, line-height `1.5`. `H1` ~20pt, `H2` ~16pt, `H3` ~13pt. Code blocks `10.5pt` with line-height `1.4`. Don't go smaller than `10pt` anywhere.
 - **Margins**: generous. `@page { margin: 20mm 18mm; }` and a matching body padding for screen viewing. Give the reader room to write notes in the margins.
 - **Paragraph spacing**: `0.6em` between paragraphs. No indentation on first lines; block paragraphs with whitespace are easier to scan on paper.
@@ -78,7 +78,7 @@ Before writing the file to disk, verify:
 
 1. No color is used to convey meaning anywhere.
 2. No dark/saturated backgrounds; text is black on white except faint gray tints.
-3. Body font is the serif stack, code is the monospace stack, sizes meet the minimums.
+3. Body font uses the Geist stack, code uses the Geist Mono stack, and sizes meet the minimums.
 4. Every `<pre>` has `white-space: pre-wrap` in its CSS.
 5. Every top-level section starts on a new page in print.
 6. Quiz answers live in a separate final section on its own page.

@@ -11,7 +11,7 @@ There is a PR. You need to review it, and produce a report back to the user.
 Two modes, selected by user request. If neither is explicitly mentioned, assume **screen** mode.
 
 - **Screen mode (default):** Use the pre-existing reporting method — the `show-report` skill.
-- **Print mode:** The user wants a printable report (e.g. to read at a café on a black-and-white printer). Read the `explain-diff-print` skill and follow every rule in it (black-and-white only, no dark backgrounds, serif/monospace print fonts, page breaks per section, quiz answers in a final section on their own page, self-contained HTML with no external resources, file at `/tmp/YYYY-MM-DD-...`). Apply those rules to the review report. Do not duplicate the rules here; read the skill.
+- **Print mode:** Read the `explain-diff-print` skill and follow it to produce the review report.
 
 You should not make any changes to the code, PR, or Ticket unless explicitly stated as such.
 
@@ -34,8 +34,7 @@ Here are some of the things you can suggest in your report:
  to get around small annoying issues, but to hide the fact that the underlying code is just wrong, etc.
 
 
-After looking at the PR and the Linear Issue and the codebase and whatever else you may want to look at, use the
-show-report skill to produce a report for the user on the status of the PR, and your recommended actions.
+After looking at the PR, Linear issue, codebase, and any other useful context, produce a report on PR status and recommended actions using the selected report mode.
 
 A few things:
  - Do not mess with the state of git in the current directory. You have to assume that another user or agent is
