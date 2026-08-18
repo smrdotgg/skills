@@ -1,11 +1,11 @@
 ---
 name: explain-diff-print
-description: Use when the user asks for a printable explanation of a code change, diff, branch, or PR. Produces a self-contained HTML file optimized for printing on a black-and-white printer and reading away from a screen (e.g. at a café). After creating the file, deliver it to the user via the send-report skill.
+description: Use when the user asks for a printable explanation of a code change, diff, branch, or PR. Produces a single HTML file optimized for printing on a black-and-white printer and reading away from a screen (e.g. at a café). After creating the file, deliver it to the user via the send-report skill.
 ---
 
 # Explain Diff (Print Edition)
 
-Make a clear, legible, printable explanation of the specified code change. The output is a single self-contained HTML file meant to be printed on a **black-and-white printer**, taken somewhere quiet, and read on paper.
+Make a clear, legible, printable explanation of the specified code change. The output is a single HTML file meant to be printed on a **black-and-white printer**, taken somewhere quiet, and read on paper.
 
 The guiding constraint is **legibility on cheap paper from a B&W laser printer**. No color reliance, no dark backgrounds, no tiny fonts, no interactive elements that only work on a screen. Everything must survive the trip to grayscale print.
 
@@ -26,7 +26,7 @@ Produce these sections, in order. Each major section starts on a new printed pag
 
 ## Format and file location
 
-- Output a single self-contained HTML file with all CSS inline in a `<style>` block. No external resources, no web fonts, no JavaScript. It must open and print correctly with no network.
+- Output a single HTML file with document CSS inline in a `<style>` block. Google Fonts is the only external resource; use the required Geist links below. No JavaScript or other external resources. System fallbacks must keep the document readable if fonts fail to load.
 - Put the file in a global place on the computer, outside the code repo. The filename must start with today's date in `YYYY-MM-DD-` format so files stay time-sorted and out of version control. Example: `/tmp/2026-01-12-explanation-<slug>.html`
 - One long document. No tabs, no collapsing sections, no hover-reveals — remember, this prints to paper.
 
@@ -36,7 +36,15 @@ These rules are the whole point of this skill versus the on-screen version. Foll
 
 - **Black-and-white only.** Design as if color does not exist. Never encode meaning with color alone. If you would have used color to distinguish things on screen, distinguish them on paper with: borders, line style (solid vs. dashed vs. dotted), labels, numbering, shading patterns, or bold/italic weight.
 - **No dark or saturated backgrounds.** White background, black text. The only shading allowed is very light gray (`#f2f2f2` or lighter) for code blocks and table headers, which prints as a faint tint and does not waste toner. Never use black backgrounds with light text.
-- **Fonts**: use Geist for all prose (`"Geist", system-ui, sans-serif`) and Geist Mono for code (`"Geist Mono", ui-monospace, monospace`). Use these exact stacks throughout the document.
+- **Fonts**: load Geist and Geist Mono from Google Fonts by placing these exact tags in `<head>`:
+
+  ```html
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500;600;700&family=Geist:wght@400;500;600;700&display=swap" rel="stylesheet">
+  ```
+
+  Use Geist for all prose (`"Geist", system-ui, sans-serif`) and Geist Mono for code (`"Geist Mono", ui-monospace, monospace`). Use these exact stacks throughout the document.
 - **Sizes**: body text `12pt`, line-height `1.5`. `H1` ~20pt, `H2` ~16pt, `H3` ~13pt. Code blocks `10.5pt` with line-height `1.4`. Don't go smaller than `10pt` anywhere.
 - **Margins**: generous. `@page { margin: 20mm 18mm; }` and a matching body padding for screen viewing. Give the reader room to write notes in the margins.
 - **Paragraph spacing**: `0.6em` between paragraphs. No indentation on first lines; block paragraphs with whitespace are easier to scan on paper.
@@ -83,4 +91,4 @@ Before writing the file to disk, verify:
 5. Every top-level section starts on a new page in print.
 6. Quiz answers live in a separate final section on its own page.
 7. File path starts with `/tmp/YYYY-MM-DD-`.
-8. The file is fully self-contained — no external fonts, scripts, stylesheets, or images.
+8. Google Fonts links load Geist and Geist Mono; no other external fonts, scripts, stylesheets, or images exist.
