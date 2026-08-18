@@ -11,7 +11,7 @@ There is a PR. You need to review it, and produce a report back to the user.
 Two modes, selected by user request. If neither is explicitly mentioned, assume **screen** mode.
 
 - **Screen mode (default):** Use the pre-existing reporting method — the `show-report` skill.
-- **Print mode:** Read the `explain-diff-print` skill and follow it to produce the review report.
+- **Print mode:** Read the `print-mode-html` skill and follow it to produce and deliver the review report.
 
 You should not make any changes to the code, PR, or Ticket unless explicitly stated as such.
 

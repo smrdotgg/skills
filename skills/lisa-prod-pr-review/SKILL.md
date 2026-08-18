@@ -19,7 +19,7 @@ Review a LISA PR targeting a production branch. Produce a production-readiness r
    - `Closing PR`: Block merge when the change is unsafe for production or rests on a fundamental implementation flaw. Examples: incorrect core behavior, material security or data-integrity risk, or a type escape such as `as any` concealing an invalid design.
 5. Produce the report. Mode is selected by user request; if neither is explicitly mentioned, assume **screen** mode.
    - **Screen mode (default):** Use the `show-report` skill.
-   - **Print mode:** Read the `explain-diff-print` skill and follow it to produce the review report.
+   - **Print mode:** Read the `print-mode-html` skill and follow it to produce and deliver the review report.
 
 ## Constraints
 
