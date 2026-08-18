@@ -17,4 +17,4 @@ For multiline content:
 printf '%s' "message" | telegram-notify
 ```
 
-Send only when user explicitly requests Telegram notification. Check command exit status; never claim message sent after failure. Never expose `TELEGRAM_BOT_TOKEN` or `TELEGRAM_CHAT_ID`.
+Send only when you are explicitly requested to use this skill. Check command exit status; never claim message sent after failure. Never expose `TELEGRAM_BOT_TOKEN` or `TELEGRAM_CHAT_ID`.
