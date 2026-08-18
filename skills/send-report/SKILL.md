@@ -13,6 +13,6 @@ postplan upload path-to-file.html
 
 Replace `path-to-file.html` with created file's path. Command output includes uploaded file's URL. Respond to user with that URL instead of local file path.
 
-Always send a Telegram notification with whatever the report needs attached — title, short description, URL, or file. Use the `telegram-notify` skill.
+Always send a Telegram notification with whatever the report needs attached — title, short description, URL, or file. Use the `telegram-notify` skill. If you already have a URL to a file, then prefer sending the already existing URL to that file.
 
 Telegram notification is mandatory and additive. It does not replace normal response presenting report to user.
