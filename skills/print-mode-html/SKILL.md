@@ -9,19 +9,17 @@ Produce one HTML file designed for black-and-white printing and comfortable pape
 
 ## Output
 
-- Put document CSS inline in a `<style>` block. Google Fonts is the only external resource. Use no JavaScript or other external resources.
+- Put document CSS inline in a `<style>` block. Google Fonts is the only external resource. Load it with CSS `@import`; the HTML must contain no `<link>` elements. Use no JavaScript or other external resources.
 - Save outside the code repository at `/tmp/YYYY-MM-DD-<slug>.html`, using today's date.
 - Build one long document with a numbered table of contents. Use no tabs, collapsed sections, hover-only content, or other screen-only interactions.
 - Keep important URLs visible as text because paper readers cannot click them.
 
 ## Fonts
 
-Place these exact tags in `<head>`:
+Place this exact rule at the top of the inline `<style>` block, before all other CSS rules:
 
-```html
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500;600;700&family=Geist:wght@400;500;600;700&display=swap" rel="stylesheet">
+```css
+@import url("https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500;600;700&family=Geist:wght@400;500;600;700&display=swap");
 ```
 
 Use these exact stacks throughout:
@@ -65,9 +63,9 @@ After saving the file, read the `send-report` skill and follow it.
 
 Before delivery, verify:
 
-1. Google Fonts links load Geist and Geist Mono, and matching CSS stacks are applied.
+1. The CSS `@import` loads Geist and Geist Mono, matching CSS stacks are applied, and the HTML contains no `<link>` elements.
 2. Meaning survives grayscale; backgrounds remain white or faint gray.
 3. Text sizes, spacing, margins, page breaks, widows, and orphans follow this skill.
 4. Every `<pre>` wraps with `white-space: pre-wrap` and `overflow-wrap: anywhere`.
 5. Page-contained elements use `break-inside: avoid`.
-6. File uses `/tmp/YYYY-MM-DD-<slug>.html` and contains no external dependency except Google Fonts.
+6. File uses `/tmp/YYYY-MM-DD-<slug>.html` and contains no external dependency except the Google Fonts CSS `@import`.
