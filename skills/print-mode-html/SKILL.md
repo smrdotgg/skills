@@ -9,27 +9,25 @@ Produce one HTML file designed for black-and-white printing and comfortable pape
 
 ## Output
 
-- Put document CSS inline in a `<style>` block. Google Fonts is the only external resource. Load it with CSS `@import`; the HTML must contain no `<link>` elements. Use no JavaScript or other external resources.
+- Put document CSS inline in a `<style>` block. Google Fonts is the only external resource. Use no JavaScript or other external resources.
 - Save outside the code repository at `/tmp/YYYY-MM-DD-<slug>.html`, using today's date.
 - Build one long document with a numbered table of contents. Use no tabs, collapsed sections, hover-only content, or other screen-only interactions.
 - Keep important URLs visible as text because paper readers cannot click them.
 
 ## Fonts
 
-Place this exact rule at the top of the inline `<style>` block, before all other CSS rules:
-
-```css
-@import url("https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500;600;700&family=Geist:wght@400;500;600;700&display=swap");
-```
+Use only system fonts. Do NOT add any `<link>` tags, and do NOT reference
+Google Fonts, Geist, Geist Mono, or any other web font. Self-contained HTML
+with zero external font dependencies is the goal.
 
 Use these exact stacks throughout:
 
 ```css
-body { font-family: "Geist", system-ui, sans-serif; }
-pre, code { font-family: "Geist Mono", ui-monospace, monospace; }
+body { font-family: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+pre, code { font-family: ui-monospace, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace; }
 ```
 
-System fallbacks must preserve legibility if Google Fonts fails to load.
+Never add `<link rel="preconnect">` or `<link href="https://fonts...">` tags.
 
 ## Paper typography
 
@@ -63,9 +61,9 @@ After saving the file, read the `send-report` skill and follow it.
 
 Before delivery, verify:
 
-1. The CSS `@import` loads Geist and Geist Mono, matching CSS stacks are applied, and the HTML contains no `<link>` elements.
+1. No Google Fonts `<link>` tags or web-font references appear; system-ui and ui-monospace stacks are applied.
 2. Meaning survives grayscale; backgrounds remain white or faint gray.
 3. Text sizes, spacing, margins, page breaks, widows, and orphans follow this skill.
 4. Every `<pre>` wraps with `white-space: pre-wrap` and `overflow-wrap: anywhere`.
 5. Page-contained elements use `break-inside: avoid`.
-6. File uses `/tmp/YYYY-MM-DD-<slug>.html` and contains no external dependency except the Google Fonts CSS `@import`.
+6. File uses `/tmp/YYYY-MM-DD-<slug>.html` and contains no external dependency (no Google Fonts, no web fonts, no remote CSS).

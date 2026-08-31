@@ -29,6 +29,13 @@ Here are some of the things you can suggest in your report:
  Tickets have their titles prefixed with exactly "PR-Ticket: ". We also should set the deadline to the next
  Friday. We also should set the priority to Urgent. (We haven't been disciplined about the urgency and deadline
  in the past. We should be disciplined now.) Feel free to look at past PR-Tickets if you want more context.
+ - db-change ticket: If the PR's diff changes files under `src/server/db/schema/`, the PR
+ should also add a db-change ticket under `docs/db-changes/pending/` (preferred — committed
+ on the branch so it ships with the PR), or at least reference one from
+ `docs/db-changes/pending/` or `docs/db-changes/done/` in its title/description. Work that
+ destroys, transforms, or reinterprets production data (backfills, mass edits, destructive
+ db:push drops, enum/constraint changes) needs a db-change ticket — see the `db-change`
+ skill. Purely additive schema changes don't need one.
  - Closing PR: If the issues in the PR are fundamental, we can block the merging of the PR until they are fixed.
  This is reserved for fundamental issues with implementation, or incredibly bad code smell like using `as any` not
  to get around small annoying issues, but to hide the fact that the underlying code is just wrong, etc.
