@@ -1,6 +1,6 @@
 ---
 name: lisa-prod-pr-review
-description: Review LISA PRs targeting production branches
+description: Reviews LISA PRs targeting production branches.
 disable-model-invocation: true
 ---
 

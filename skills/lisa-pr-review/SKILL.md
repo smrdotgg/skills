@@ -1,6 +1,6 @@
 ---
 name: lisa-pr-review
-description: How to review PR's into non-production branches (other than main) when working on LISA. Supports two report modes — screen (default) and print. Use print mode when the user asks for a printable, black-and-white-friendly report to read away from a screen.
+description: Reviews LISA PRs into non-production branches.
 disable-model-invocation: true
 ---
 
