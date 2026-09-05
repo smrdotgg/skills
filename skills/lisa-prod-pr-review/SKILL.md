@@ -18,7 +18,7 @@ Review a LISA PR targeting a production branch. Produce a production-readiness r
    - `PR-Ticket`: Non-blocking issue the PR author can address after merge. If created, prefix its Linear title with exactly `PR-Ticket: `, set priority to Urgent, and set deadline to next Friday. Consult past PR-Tickets when useful.
    - `Closing PR`: Block merge when the change is unsafe for production or rests on a fundamental implementation flaw. Examples: incorrect core behavior, material security or data-integrity risk, or a type escape such as `as any` concealing an invalid design.
 5. Produce the report. Mode is selected by user request; if neither is explicitly mentioned, assume **screen** mode.
-   - **Screen mode (default):** Use the `show-report` skill.
+   - **Screen mode (default):** Use the `create-report` skill.
    - **Print mode:** Read the `print-mode-html` skill and follow it to produce and deliver the review report.
 
 ## Constraints
