@@ -1,6 +1,7 @@
 ---
 name: explain
-description: Explain anything — code, a module, subsystem, file, diff, PR, architecture, data flow, algorithm, tool, or concept — as a readable document. Two modes — screen (default) and paper (print-ready HTML). Use when the user asks to explain or teach a subject.
+description: Creates readable explanations in screen or print-ready paper mode.
+disable-model-invocation: true
 ---
 
 # Explain
