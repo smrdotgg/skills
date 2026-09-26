@@ -1,0 +1,120 @@
+#!/bin/sh
+# Convert a Markdown file to Kindle-friendly HTML, upload it to Postplan,
+# and print only the resulting URL.
+set -eu
+
+SELF_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+USAGE="Usage: m2p FILE [kindle-html.ts options...]"
+
+usage() {
+  echo "$USAGE"
+  echo
+  echo "Convert FILE (Markdown) to HTML with kindle-html.ts, upload it to"
+  echo "Postplan, and print the draft URL."
+  echo
+  echo "  FILE is required and must come first. Remaining arguments are passed"
+  echo "  through to kindle-html.ts (for example --style, --text-only,"
+  echo "  --base-url, --title). Do not pass -o; m2p chooses the output path."
+  echo
+  echo "  Unless --title is given, the document title is taken from FILE's first"
+  echo "  Markdown heading, falling back to the filename without its extension."
+  echo
+  echo "Options:"
+  echo "  --keep                Keep the temporary HTML file and print its path"
+  echo "  -h, --help            Show this help"
+}
+
+if [ "${1:-}" = "-h" ] || [ "${1:-}" = "--help" ]; then
+  usage
+  exit 0
+fi
+
+if [ "$#" -eq 0 ]; then
+  echo "m2p: missing Markdown file" >&2
+  usage >&2
+  exit 2
+fi
+
+file=$1
+shift
+
+if [ ! -f "$file" ]; then
+  echo "m2p: not a file: $file" >&2
+  exit 2
+fi
+
+command -v postplan >/dev/null 2>&1 || {
+  echo "m2p: postplan not found on PATH" >&2
+  exit 1
+}
+[ -x "$SELF_DIR/kindle-html.ts" ] || {
+  echo "m2p: cannot run $SELF_DIR/kindle-html.ts" >&2
+  exit 1
+}
+
+# Consume m2p's own flags; keep everything else for kindle-html.ts.
+keep=
+args=
+for arg in "$@"; do
+  case "$arg" in
+    --keep) keep=1 ;;
+    *)
+      esc=$(printf '%s' "$arg" | sed "s/'/'\\\\''/g")
+      args="$args '$esc'"
+      ;;
+  esac
+done
+eval "set -- $args"
+
+has_title=
+for arg in "$@"; do
+  case "$arg" in
+    --title | --title=*) has_title=1 ;;
+  esac
+done
+
+if [ -z "$has_title" ]; then
+  # First Markdown heading, with inline markup stripped, then the filename.
+  heading=$(awk '
+    /^#{1,6}[ \t]/ {
+      sub(/^#+[ \t]+/, "")
+      sub(/[ \t]+#+[ \t]*$/, "")
+      print
+      exit
+    }' "$file")
+  title=$(printf '%s' "$heading" | sed \
+    -e 's/\[\([^]]*\)\]([^)]*)/\1/g' \
+    -e 's/[*_`]//g' \
+    -e 's/^[ \t]*//' -e 's/[ \t]*$//')
+  if [ -z "$title" ]; then
+    base=$(basename -- "$file")
+    title=${base%.*}
+  fi
+fi
+
+workdir=$(mktemp -d "${TMPDIR:-/tmp}/m2p-XXXXXX")
+html="$workdir/document.html"
+cleanup() {
+  [ -n "$keep" ] || rm -rf "$workdir"
+}
+trap cleanup EXIT INT TERM
+
+if [ -n "${title:-}" ]; then
+  "$SELF_DIR/kindle-html.ts" "$file" --title "$title" "$@" -o "$html"
+else
+  "$SELF_DIR/kindle-html.ts" "$file" "$@" -o "$html"
+fi
+
+upload_output=$(postplan upload "$html")
+url=$(printf '%s\n' "$upload_output" | sed -n 's/^URL: //p' | head -n1)
+
+if [ -z "$url" ]; then
+  echo "m2p: postplan did not return a URL. Output was:" >&2
+  printf '%s\n' "$upload_output" >&2
+  exit 1
+fi
+
+printf '%s\n' "$url"
+if [ -n "$keep" ]; then
+  echo "m2p: kept $html" >&2
+fi
