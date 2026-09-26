@@ -17,8 +17,10 @@ You should not make any changes to the code, PR, or Ticket unless explicitly sta
 
 This PR has a base branch that will be tested relentlessly if merged, so feel free to be more lax.
 
-The PR may reference linear tickets. Feel free to use the linear CLI to get more context on the ticket
-the PR is mentioning.
+If the PR references Issues, feel free to check if the platform CLI is available and set up. For example,
+if the PR references Linear Issues, feel free to check if a linear CLI is available. Same for GitHub Issues.
+If the CLI's are not available or if a PR does not reference a Issue, then continue without this optional
+additional context.
 
 Here are some of the things you can suggest in your report:
  - code_fix: If an issue is super small, then the user can just make a commit to the other dev's branch
