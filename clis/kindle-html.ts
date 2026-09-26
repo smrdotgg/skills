@@ -4,7 +4,7 @@
 import { stat, writeFile } from "node:fs/promises";
 import { parseArgs } from "node:util";
 
-const VERSION = "1.0.0";
+const VERSION = "1.1.0";
 const USAGE = "Usage: kindle-html.ts [OPTIONS] [FILE|-]";
 const HELP = `${USAGE}
 
@@ -32,6 +32,10 @@ OPTIONS
   --base-url URL        Resolve relative links and images against an absolute
                         HTTP(S) URL. Local #fragment links stay local.
                         A trailing / makes the URL a directory base.
+  --style STYLE         Stylesheet to embed. fancy (default): readable width,
+                        system fonts, and a dark mode that follows the browser
+                        theme. plain: the original one-line stylesheet for
+                        wrapping, images, and tables.
   -h, --help            Show this guide and exit.
   --version             Print the CLI version and exit.
   --                    End options; subsequent arguments are filenames.
@@ -43,6 +47,7 @@ EXAMPLES
   kindle-html.ts - --title 'Reading notes' -o notes.html
   kindle-html.ts article.md --text-only -o article.html
   kindle-html.ts article.md --base-url https://example.com/posts/ -o article.html
+  kindle-html.ts article.md --style plain -o article.html
   kindle-html.ts -- -unusual-filename.md
 
 CONVERSION RULES
@@ -56,8 +61,11 @@ CONVERSION RULES
   No summaries, added visible titles, contents pages, or syntax highlighting.
 
   Output is a complete UTF-8 HTML document with zero classes, no JavaScript,
-  and one tiny element-only stylesheet for wrapping, images, and tables.
-  Whitespace is not aggressively minified, so words and code stay intact.
+  no fonts or stylesheets fetched over the network, and one element-only
+  stylesheet. The default fancy stylesheet adds a readable column width and a
+  dark mode that follows the browser's theme; --style plain keeps the
+  original minimal stylesheet. Whitespace is not aggressively minified, so
+  words and code stay intact.
 
   Embedded HTML: basic reading elements and readable text are retained.
   Block layout wrappers become plain divs; redundant inline wrappers are
@@ -81,7 +89,21 @@ EXIT CODES
   Conversion writes only HTML to stdout; diagnostics go to stderr.
 `;
 
-const STYLE = "body{word-wrap:break-word}pre{white-space:pre-wrap}img{max-width:100%;height:auto}table{border-collapse:collapse}th,td{border:1px solid;padding:.2em}";
+const PLAIN_STYLE = "body{word-wrap:break-word}pre{white-space:pre-wrap}img{max-width:100%;height:auto}table{border-collapse:collapse}th,td{border:1px solid;padding:.2em}";
+const FANCY_STYLE = [
+  ":root{color-scheme:light dark}",
+  "body{word-wrap:break-word;max-width:42rem;margin:0 auto;padding:1rem 1.25rem;line-height:1.6;background:#fff;color:#1a1a1a;font-family:system-ui,-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif}",
+  "h1,h2,h3,h4,h5,h6{line-height:1.25;margin:1.6em 0 .6em}h1{margin-top:0}",
+  "a{color:#0645ad}",
+  "blockquote{margin:1em 0;padding:.1em 1em;border-left:.25em solid #d0d0d0;color:#444}",
+  "pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#f4f4f4;border:1px solid #e0e0e0;border-radius:4px;padding:.6em .8em}",
+  "code{font-family:ui-monospace,'SF Mono',Menlo,Consolas,'Liberation Mono',monospace;font-size:.9em}",
+  "img{max-width:100%;height:auto}",
+  "hr{border:0;border-top:1px solid #d0d0d0}",
+  "table{border-collapse:collapse;margin:1em 0}",
+  "th,td{border:1px solid #c8c8c8;padding:.3em .5em;text-align:left}th{background:#f4f4f4}",
+  "@media (prefers-color-scheme:dark){body{background:#161616;color:#d8d8d8}a{color:#7fb2ff}blockquote{border-left-color:#444;color:#b0b0b0}pre{background:#222;border-color:#333}hr{border-top-color:#333}th,td{border-color:#3a3a3a}th{background:#242424}}",
+].join("");
 const BASIC_TAGS = new Set("a abbr b bdi bdo blockquote br caption code col colgroup dd del div dl dt em h1 h2 h3 h4 h5 h6 hr i img ins kbd li mark ol p pre q rp rt ruby s samp small span strong sub sup table tbody td tfoot th thead tr u ul var wbr".split(" "));
 const BLOCK_WRAPPERS = new Set("address article aside center details dialog fieldset figcaption figure footer form header hgroup legend main menu nav option section summary".split(" "));
 const DROP_CONTENT = new Set("script style iframe frame frameset noframes head title template".split(" "));
@@ -99,7 +121,8 @@ const C1_REPLACEMENTS = "€\u0081‚ƒ„…†‡ˆ‰Š‹Œ\u008dŽ\u008f\u0
 
 class UsageError extends Error {}
 
-type Options = { input: string; output: string; title: string; textOnly: boolean; baseURL?: URL };
+type Style = "fancy" | "plain";
+type Options = { input: string; output: string; title: string; textOnly: boolean; style: Style; baseURL?: URL };
 
 function parseOptions(args: string[]): Options | "help" | "version" {
   let parsed: ReturnType<typeof parseArgs>;
@@ -107,6 +130,7 @@ function parseOptions(args: string[]): Options | "help" | "version" {
     parsed = parseArgs({ args, allowPositionals: true, strict: true, options: {
       output: { type: "string", short: "o" }, title: { type: "string" },
       "text-only": { type: "boolean" }, "base-url": { type: "string" },
+      style: { type: "string" },
       help: { type: "boolean", short: "h" }, version: { type: "boolean" },
     } });
   } catch (error) {
@@ -128,8 +152,12 @@ function parseOptions(args: string[]): Options | "help" | "version" {
       throw new UsageError("--base-url must be an absolute HTTP(S) URL.");
     }
   }
+  const style = (values.style as string | undefined) ?? "fancy";
+  if (style !== "fancy" && style !== "plain") {
+    throw new UsageError("--style must be 'fancy' or 'plain'.");
+  }
   return { input, output, title: (values.title as string | undefined) ?? "Document",
-    textOnly: Boolean(values["text-only"]), baseURL };
+    textOnly: Boolean(values["text-only"]), style, baseURL };
 }
 
 function decodeAttribute(value: string): string {
@@ -216,7 +244,8 @@ function convert(markdown: string, options: Options): string {
   const content = cleanHTML(Bun.markdown.html(markdown, {
     headings: { ids: true }, tagFilter: false,
   }), options);
-  return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${Bun.escapeHTML(options.title)}</title><style>${STYLE}</style></head><body>${content}</body></html>\n`;
+  const style = options.style === "plain" ? PLAIN_STYLE : FANCY_STYLE;
+  return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${Bun.escapeHTML(options.title)}</title><style>${style}</style></head><body>${content}</body></html>\n`;
 }
 
 async function checkOutput(options: Options): Promise<void> {
