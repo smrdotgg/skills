@@ -1,6 +1,7 @@
 ---
 name: create-report
 description: Create an HTML report file to present to the user. Use when you need to present a report after an internet research task, a PR review, or anything else that would naturally require a "report back".
+disable-model-invocation: true
 ---
 # create-report
 Create an HTML file in `/tmp/` containing the report.
