@@ -4,7 +4,7 @@
 import { stat, writeFile } from "node:fs/promises";
 import { parseArgs } from "node:util";
 
-const VERSION = "1.1.0";
+const VERSION = "1.2.0";
 const USAGE = "Usage: kindle-html.ts [OPTIONS] [FILE|-]";
 const HELP = `${USAGE}
 
@@ -58,6 +58,9 @@ CONVERSION RULES
   Code indentation and line breaks are retained. Bun expands leading code
   tabs to four-column stops and normalizes CRLF line endings to LF.
   Normal prose uses HTML whitespace rules.
+  Option lists written as runs of paragraphs opening with a marker such as
+  (a), (ii), (3), or b) become definition lists: marker, then text. So does
+  a bulleted list whose every item opens with one, dropping the bullets.
   No summaries, added visible titles, contents pages, or syntax highlighting.
 
   Output is a complete UTF-8 HTML document with zero classes, no JavaScript,
@@ -102,6 +105,7 @@ const FANCY_STYLE = [
   "hr{border:0;border-top:1px solid #d0d0d0}",
   "table{border-collapse:collapse;margin:1em 0}",
   "th,td{border:1px solid #c8c8c8;padding:.3em .5em;text-align:left}th{background:#f4f4f4}",
+  "dl{display:grid;grid-template-columns:max-content 1fr;gap:.6em;margin:1em 0}dt{grid-column:1}dd{grid-column:2;margin:0}dd>p{margin:0 0 .6em}dd>p:last-child{margin:0}",
   "@media (prefers-color-scheme:dark){body{background:#161616;color:#d8d8d8}a{color:#7fb2ff}blockquote{border-left-color:#444;color:#b0b0b0}pre{background:#222;border-color:#333}hr{border-top-color:#333}th,td{border-color:#3a3a3a}th{background:#242424}}",
 ].join("");
 const BASIC_TAGS = new Set("a abbr b bdi bdo blockquote br caption code col colgroup dd del div dl dt em h1 h2 h3 h4 h5 h6 hr i img ins kbd li mark ol p pre q rp rt ruby s samp small span strong sub sup table tbody td tfoot th thead tr u ul var wbr".split(" "));
@@ -191,6 +195,26 @@ function readableURL(value: string, image: boolean, baseURL?: URL): string | und
   catch { return undefined; }
 }
 
+// An enumeration marker: one letter, a roman numeral up to xxxix, or (for the
+// parenthesized form only) a number. Bare digits are already CommonMark lists.
+const ROMAN = "(?=[ivx])x{0,3}(?:ix|iv|v?i{0,3})|(?=[IVX])X{0,3}(?:IX|IV|V?I{0,3})";
+const MARKER = `\\((?:[a-zA-Z]|\\d{1,3}|${ROMAN})\\)|(?:[a-zA-Z]|${ROMAN})\\)`;
+const MARKED_P = `<p>(${MARKER})[ \\n]((?:(?!</p>)[\\s\\S])*)</p>\\n`;
+const MARKED_LI = `<li>(\\n<p>)?(${MARKER})[ \\n]((?:(?!</?(?:li|ul|ol)[\\s>])[\\s\\S])*?)\\n?</li>\\n`;
+
+// Turn marker-led paragraph runs, and bulleted lists whose every item is marker-led,
+// into <dl> so an element-only stylesheet can give them a hanging indent.
+function enumerationLists(html: string): string {
+  const item = (marker: string, body: string) => `<dt>${marker}</dt><dd>${body}</dd>\n`;
+  return html
+    .replace(new RegExp(`<ul>\\n(?:${MARKED_LI})+</ul>\\n`, "g"), (list) => `<dl>\n${
+      list.replace(new RegExp(MARKED_LI, "g"), (_, loose, marker, body) => item(marker, loose ? `<p>${body}` : body))
+        .replace(/^<ul>\n|<\/ul>\n$/g, "")}</dl>\n`)
+    // A lone paragraph inside a list item keeps its bullet.
+    .replace(new RegExp(`(?<!<li>\\n)(?:${MARKED_P})+`, "g"), (run) => `<dl>\n${
+      run.replace(new RegExp(MARKED_P, "g"), (_, marker, body) => item(marker, body))}</dl>\n`);
+}
+
 function cleanHTML(html: string, options: Options): string {
   return new HTMLRewriter().on("*", {
     element(element) {
@@ -241,9 +265,9 @@ function cleanHTML(html: string, options: Options): string {
 }
 
 function convert(markdown: string, options: Options): string {
-  const content = cleanHTML(Bun.markdown.html(markdown, {
+  const content = cleanHTML(enumerationLists(Bun.markdown.html(markdown, {
     headings: { ids: true }, tagFilter: false,
-  }), options);
+  })), options);
   const style = options.style === "plain" ? PLAIN_STYLE : FANCY_STYLE;
   return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${Bun.escapeHTML(options.title)}</title><style>${style}</style></head><body>${content}</body></html>\n`;
 }
