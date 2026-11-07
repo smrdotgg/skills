@@ -1,0 +1,298 @@
+#!/usr/bin/env node
+
+const { openAsBlob } = require("node:fs");
+const { stat } = require("node:fs/promises");
+const { basename, resolve } = require("node:path");
+
+const MAX_FILE_BYTES = 50 * 1024 * 1024;
+const MAX_ALBUM_FILES = 10;
+const TEXT_TIMEOUT_MS = 15_000;
+const UPLOAD_TIMEOUT_MS = 120_000;
+const PARSE_MODES = new Set(["Markdown", "MarkdownV2", "HTML"]);
+
+function usage() {
+  console.log(`Usage:
+  telegram-notify [OPTIONS] [MESSAGE...]
+  printf 'MESSAGE' | telegram-notify [OPTIONS]
+
+Send text or attach local files to the Telegram chat configured by environment.
+With attachments, MESSAGE or stdin becomes an optional caption.
+
+Options:
+  -a, --attach FILE       Attach a file; repeat for multiple files
+  -c, --caption TEXT      Set attachment caption or text message
+      --parse-mode MODE   Caption/message mode: Markdown, MarkdownV2, or HTML
+      --silent            Send without notification sound
+      --protect           Prevent forwarding and saving
+      --no-type-detection Disable server-side document type detection
+  -h, --help              Show this help
+
+Multiple files are sent as document albums of 2-10 files. Larger sets are
+split into batches; a one-file remainder is sent as a document. Caption is
+applied to the first sent item. Each uploaded file must be 50 MB or smaller.
+
+Examples:
+  telegram-notify "Build complete"
+  telegram-notify -a report.pdf
+  telegram-notify -a report.pdf -c "Q3 report"
+  telegram-notify -a one.pdf -a two.csv "Export bundle"
+  printf 'Nightly results' | telegram-notify -a results.json --silent
+
+Environment:
+  TELEGRAM_BOT_TOKEN  Telegram bot token
+  TELEGRAM_CHAT_ID    Target Telegram chat ID`);
+}
+
+function takeValue(args, index, option) {
+  if (index + 1 >= args.length) {
+    throw new Error(`${option} requires a value`);
+  }
+  return args[index + 1];
+}
+
+function parseArgs(args) {
+  const options = {
+    attachments: [],
+    caption: undefined,
+    parseMode: undefined,
+    silent: false,
+    protect: false,
+    noTypeDetection: false,
+    help: false,
+    positional: [],
+  };
+
+  let optionsEnded = false;
+  for (let index = 0; index < args.length; index += 1) {
+    const arg = args[index];
+
+    if (optionsEnded) {
+      options.positional.push(arg);
+      continue;
+    }
+
+    if (arg === "--") {
+      optionsEnded = true;
+    } else if (arg === "-h" || arg === "--help") {
+      options.help = true;
+    } else if (arg === "-a" || arg === "--attach") {
+      options.attachments.push(takeValue(args, index, arg));
+      index += 1;
+    } else if (arg.startsWith("--attach=")) {
+      options.attachments.push(arg.slice("--attach=".length));
+    } else if (arg === "-c" || arg === "--caption") {
+      options.caption = takeValue(args, index, arg);
+      index += 1;
+    } else if (arg.startsWith("--caption=")) {
+      options.caption = arg.slice("--caption=".length);
+    } else if (arg === "--parse-mode") {
+      options.parseMode = takeValue(args, index, arg);
+      index += 1;
+    } else if (arg.startsWith("--parse-mode=")) {
+      options.parseMode = arg.slice("--parse-mode=".length);
+    } else if (arg === "--silent") {
+      options.silent = true;
+    } else if (arg === "--protect") {
+      options.protect = true;
+    } else if (arg === "--no-type-detection") {
+      options.noTypeDetection = true;
+    } else if (arg.startsWith("-")) {
+      throw new Error(`unknown option: ${arg}`);
+    } else {
+      options.positional.push(arg);
+    }
+  }
+
+  if (options.caption !== undefined && options.positional.length > 0) {
+    throw new Error("use either --caption or positional message text, not both");
+  }
+  if (options.parseMode !== undefined && !PARSE_MODES.has(options.parseMode)) {
+    throw new Error("--parse-mode must be Markdown, MarkdownV2, or HTML");
+  }
+  if (options.noTypeDetection && options.attachments.length === 0) {
+    throw new Error("--no-type-detection requires at least one attachment");
+  }
+  if (options.attachments.some((path) => path.length === 0)) {
+    throw new Error("attachment path cannot be empty");
+  }
+
+  return options;
+}
+
+async function readStdin() {
+  const chunks = [];
+  for await (const chunk of process.stdin) chunks.push(chunk);
+  return Buffer.concat(chunks).toString("utf8");
+}
+
+async function getText(options) {
+  if (options.caption !== undefined) return options.caption;
+  if (options.positional.length > 0) return options.positional.join(" ");
+  if (!process.stdin.isTTY) return readStdin();
+  return "";
+}
+
+async function inspectAttachments(paths) {
+  return Promise.all(paths.map(async (inputPath) => {
+    const path = resolve(inputPath);
+    let info;
+    try {
+      info = await stat(path);
+    } catch (error) {
+      throw new Error(`cannot read attachment ${inputPath}: ${error.message}`);
+    }
+
+    if (!info.isFile()) {
+      throw new Error(`attachment is not a regular file: ${inputPath}`);
+    }
+    if (info.size > MAX_FILE_BYTES) {
+      throw new Error(`attachment exceeds 50 MB: ${inputPath}`);
+    }
+
+    return { path, name: basename(path) };
+  }));
+}
+
+function applyCommonFields(form, options) {
+  if (options.silent) form.set("disable_notification", "true");
+  if (options.protect) form.set("protect_content", "true");
+}
+
+function applyCaptionFields(form, text, options) {
+  if (text.length === 0) return;
+  form.set("caption", text);
+  if (options.parseMode) form.set("parse_mode", options.parseMode);
+}
+
+async function telegramRequest(token, method, body, timeoutMs) {
+  const response = await fetch(
+    `https://api.telegram.org/bot${token}/${method}`,
+    {
+      method: "POST",
+      body,
+      signal: AbortSignal.timeout(timeoutMs),
+    },
+  );
+
+  const result = await response.json().catch(() => null);
+  if (!response.ok || result?.ok !== true) {
+    const detail = result?.description ?? `${response.status} ${response.statusText}`;
+    throw new Error(`Telegram rejected request: ${detail}`);
+  }
+  return result.result;
+}
+
+async function sendMessage(token, chatId, text, options) {
+  const body = new URLSearchParams({ chat_id: chatId, text });
+  if (options.parseMode) body.set("parse_mode", options.parseMode);
+  if (options.silent) body.set("disable_notification", "true");
+  if (options.protect) body.set("protect_content", "true");
+
+  return telegramRequest(token, "sendMessage", body, TEXT_TIMEOUT_MS);
+}
+
+async function sendDocument(token, chatId, file, caption, options) {
+  const form = new FormData();
+  form.set("chat_id", chatId);
+  form.set("document", await openAsBlob(file.path), file.name);
+  applyCaptionFields(form, caption, options);
+  applyCommonFields(form, options);
+  if (options.noTypeDetection) {
+    form.set("disable_content_type_detection", "true");
+  }
+
+  return telegramRequest(token, "sendDocument", form, UPLOAD_TIMEOUT_MS);
+}
+
+async function sendAlbum(token, chatId, files, caption, options) {
+  const form = new FormData();
+  form.set("chat_id", chatId);
+  applyCommonFields(form, options);
+
+  const media = [];
+  for (let index = 0; index < files.length; index += 1) {
+    const file = files[index];
+    const partName = `file${index}`;
+    const item = {
+      type: "document",
+      media: `attach://${partName}`,
+    };
+
+    if (index === 0 && caption.length > 0) {
+      item.caption = caption;
+      if (options.parseMode) item.parse_mode = options.parseMode;
+    }
+    if (options.noTypeDetection) {
+      item.disable_content_type_detection = true;
+    }
+
+    media.push(item);
+    form.set(partName, await openAsBlob(file.path), file.name);
+  }
+
+  form.set("media", JSON.stringify(media));
+  return telegramRequest(token, "sendMediaGroup", form, UPLOAD_TIMEOUT_MS);
+}
+
+function batchesOf(files, size) {
+  const batches = [];
+  for (let index = 0; index < files.length; index += size) {
+    batches.push(files.slice(index, index + size));
+  }
+  return batches;
+}
+
+async function sendAttachments(token, chatId, files, caption, options) {
+  const batches = batchesOf(files, MAX_ALBUM_FILES);
+  if (batches.length > 1) {
+    console.error(`telegram-notify: splitting ${files.length} attachments into ${batches.length} batches`);
+  }
+
+  for (let index = 0; index < batches.length; index += 1) {
+    const batch = batches[index];
+    const batchCaption = index === 0 ? caption : "";
+
+    if (batch.length === 1) {
+      const message = await sendDocument(token, chatId, batch[0], batchCaption, options);
+      console.log(`Sent Telegram document ${message.message_id}`);
+    } else {
+      const messages = await sendAlbum(token, chatId, batch, batchCaption, options);
+      const ids = messages.map((message) => message.message_id).join(", ");
+      console.log(`Sent Telegram album ${ids}`);
+    }
+  }
+}
+
+async function main() {
+  const options = parseArgs(process.argv.slice(2));
+  if (options.help) {
+    usage();
+    return;
+  }
+
+  const text = await getText(options);
+  if (options.attachments.length === 0 && !text.trim()) {
+    usage();
+    throw new Error("message cannot be empty when no files are attached");
+  }
+
+  const files = await inspectAttachments(options.attachments);
+  const token = process.env.TELEGRAM_BOT_TOKEN;
+  const chatId = process.env.TELEGRAM_CHAT_ID;
+  if (!token || !chatId) {
+    throw new Error("TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID must be set");
+  }
+
+  if (files.length === 0) {
+    const message = await sendMessage(token, chatId, text, options);
+    console.log(`Sent Telegram message ${message.message_id}`);
+    return;
+  }
+
+  await sendAttachments(token, chatId, files, text, options);
+}
+
+main().catch((error) => {
+  console.error(`telegram-notify: ${error.message}`);
+  process.exitCode = 1;
+});
