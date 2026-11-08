@@ -14,6 +14,7 @@ You **orchestrate**. Subagents do the building and the checking; you hold the pl
 
 - **EC2** is where you run: the user's Linux dev machine on AWS. The repo, the toolchain and the subagents all live here.
 - **MacBook** is reachable with `ssh smr@macbook-pro`. It can be asleep, unplugged or offline, so probe it before you rely on it: `ssh -o ConnectTimeout=8 -o BatchMode=yes smr@macbook-pro true`. It is up more often than not. When it is down, tell the user what is waiting on it and carry on with everything that doesn't need it.
+- **Codex on the MacBook** has computer use, so it can test native apps or browser flows as a user would: `ssh smr@macbook-pro 'zsh -lc "codex exec -m gpt-6.1-sol -c model_reasoning_effort=\"high\" ..."'` (`zsh -lc` puts `codex` on PATH). Give it a narrow scope so it doesn't wander into the user's personal files. The browser is Brave; the user's personal profile is `SMR`. Ask before using that profile, in chat or via the `telegram-notify` skill.
 
 ## Subagents
 
